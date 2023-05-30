@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /** A {@link SplitReader} implementation that reads records from Kafka partitions. */
@@ -76,11 +77,20 @@ public class KafkaPartitionSplitReader
             Properties props,
             SourceReaderContext context,
             KafkaSourceReaderMetrics kafkaSourceReaderMetrics) {
+        this(props, context, kafkaSourceReaderMetrics, () -> null);
+    }
+
+    public KafkaPartitionSplitReader(
+            Properties props,
+            SourceReaderContext context,
+            KafkaSourceReaderMetrics kafkaSourceReaderMetrics,
+            Supplier<String> rackIdSupplier) {
         this.subtaskId = context.getIndexOfSubtask();
         this.kafkaSourceReaderMetrics = kafkaSourceReaderMetrics;
         Properties consumerProps = new Properties();
         consumerProps.putAll(props);
         consumerProps.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, createConsumerClientId(props));
+        setConsumerClientRack(consumerProps, rackIdSupplier);
         this.consumer = new KafkaConsumer<>(consumerProps);
         this.stoppingOffsets = new HashMap<>();
         this.groupId = consumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG);
@@ -221,6 +231,22 @@ public class KafkaPartitionSplitReader
     }
 
     // --------------- private helper method ----------------------
+
+    /**
+     * This Method performs Null and empty Rack Id validation and sets the rack id to the
+     * client.rack Consumer Config.
+     *
+     * @param consumerProps Consumer Property.
+     * @param rackIdSupplier Rack Id's.
+     */
+    void setConsumerClientRack(Properties consumerProps, Supplier<String> rackIdSupplier) {
+        if (rackIdSupplier != null) {
+            String rackId = rackIdSupplier.get();
+            if (rackId != null && !rackId.isEmpty()) {
+                consumerProps.setProperty(ConsumerConfig.CLIENT_RACK_CONFIG, rackId);
+            }
+        }
+    }
 
     private void parseStartingOffsets(
             KafkaPartitionSplit split,
