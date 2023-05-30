@@ -31,7 +31,7 @@ under the License.
 	</parent>
 
 	<artifactId>flink-connector-kafka_${scala.binary.version}</artifactId>
-	<version>1.14.3-riv-kc-1-SNAPSHOT</version>
+	<version>1.14.3-riv-kc-1</version>
 	<name>Flink : Connectors : Kafka</name>
 
 	<packaging>jar</packaging>
